@@ -1,0 +1,875 @@
+main.dart
+import 'package:flutter/material.dart';
+import 'package:myapp/screens/schedules_screen.dart';
+import 'package:myapp/screens/tasks_screen.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: TasksScreen(),
+      routes: {
+        '/home': (context) => const TasksScreen(),
+        '/schedules': (context) => const ScheduleScreen(),
+      },
+    );
+    
+  }
+}
+
+--------------------------------------------------------------------------------------
+
+
+tasks_screen.dart
+
+
+import 'package:flutter/material.dart';
+import 'package:myapp/screens/task_form_screen.dart';
+import 'package:myapp/widget/header_app.dart';
+import 'package:myapp/widget/tasks_list.dart';
+import 'package:myapp/widget/navigation_bar.dart';
+import 'package:myapp/database/task_database.dart';
+import 'package:myapp/database/task_model.dart';
+
+class TasksScreen extends StatefulWidget {
+  const TasksScreen({super.key});
+
+  @override
+  State<TasksScreen> createState() => _TasksScreenState();
+}
+
+class _TasksScreenState extends State<TasksScreen> {
+  int _taskCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTaskCount();
+  }
+
+  void _loadTaskCount() async {
+    List<Task> tasks = await TaskDatabase().getAllTasks();
+    setState(() {
+      _taskCount = tasks.length;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF468ca3),
+      body: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: 20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ====================== Section 1 ======================
+              HeaderApp(),
+
+              const SizedBox(height: 20),
+
+              // ====================== Section 2 ======================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "$_taskCount Tasks",
+                    style: TextStyle(
+                      color: const Color(0xFFbfdee9),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  FloatingActionButton.small(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TaskFormScreen(),
+                        ),
+                      ).then((_) => _loadTaskCount());
+                    },
+                    backgroundColor: const Color(0xFF063454),
+                    elevation: 4,
+                    child: Icon(
+                      Icons.add,
+                      size: 18,
+                      color: const Color(0xFFbfdee9),
+                    ),
+                  ),
+                ],
+              ),
+              // ====================== Section 3 ======================
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 15),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFbfdee9),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: TasksList(onUpdateTaskCount: _loadTaskCount), 
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: NavigationButtom(currentIndex: 0),
+    );
+  }
+}
+-----------------------------------------------------------
+
+
+
+tasks_list.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:myapp/database/task_model.dart';
+import 'package:myapp/database/task_database.dart';
+import 'package:myapp/widget/task_item.dart';
+import 'package:myapp/screens/task_details_screen.dart';
+
+class TasksList extends StatefulWidget {
+  final VoidCallback onUpdateTaskCount;
+
+  const TasksList({super.key, required this.onUpdateTaskCount});
+
+  @override
+  State<TasksList> createState() => _TasksListState();
+}
+
+class _TasksListState extends State<TasksList> {
+  List<Task> _tasks = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
+  }
+
+  void _loadTasks() async {
+    List<Task> tasks = await TaskDatabase().getAllTasks();
+    setState(() {
+      _tasks = tasks;
+    });
+  }
+
+  void _deleteTask(int id) async {
+    await TaskDatabase().deleteTask(id);
+    widget.onUpdateTaskCount();
+    _loadTasks();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _tasks.isEmpty
+        ? const Center(
+          child: Text(
+            "No Tasks Avilable",
+            style: TextStyle(
+              color: Color(0xFF063454),
+              fontSize: 24,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        )
+        : ListView.builder(
+          itemCount: _tasks.length,
+          itemBuilder: (context, index) {
+            final task = _tasks[index];
+
+            return Slidable(
+              endActionPane: ActionPane(
+                motion: const ScrollMotion(),
+                children: [
+                  SlidableAction(
+                    onPressed: (context) {
+                      print("Edit Task: ${task.title}");
+                    },
+                    backgroundColor: const Color(0xFFbfdee9),
+                    icon: Icons.edit,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  SlidableAction(
+                    onPressed: (context) {
+                      if (task.id != null) {
+                        _deleteTask(task.id!);
+                      } else {
+                        print("Error: Task ID is null");
+                      }
+                    },
+                    backgroundColor: const Color(0xFFbfdee9),
+                    icon: Icons.delete,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ],
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TaskDetailsScreen(task: task),
+                    ),
+                  ).then(
+                    (_) => _loadTasks(),
+                  ); // Reload tasks after navigating back
+                },
+                child: TaskItem(
+                  taskTitle: task.title,
+                  isChecked: task.isCompleted,
+                ),
+              ),
+            );
+          },
+        );
+  }
+}
+------------------------------------------------------
+
+task_item.dart
+
+
+// ========================================
+// Task Item Widget
+// ========================================
+import 'package:flutter/material.dart';
+
+class TaskItem extends StatelessWidget {
+  final String taskTitle;
+  final bool isChecked;
+
+  const TaskItem({
+    super.key,
+    required this.taskTitle,
+    required this.isChecked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 15),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isChecked ? const Color(0x8F72C9CE) : const Color(0xFFf8f9fa),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              taskTitle,
+              style: TextStyle(
+                color: isChecked ? const Color(0xFF155724) : const Color(0xFF063454),
+                fontSize: 16,
+                fontWeight: isChecked ? FontWeight.w600 : FontWeight.w500,
+                decoration: isChecked ? TextDecoration.lineThrough : TextDecoration.none,
+              ),
+            ),
+          ),
+          Checkbox(
+            value: isChecked,
+            onChanged: (value) {
+              // هنا يمكنك إضافة الدالة لتحديث حالة المهمة
+            },
+            activeColor: const Color(0xFF063454),
+          ),
+        ],
+      ),
+    );
+  }
+}
+----------------------------------------------
+
+
+task_details_screen.dart
+
+import 'package:flutter/material.dart';
+import 'package:myapp/database/task_model.dart';
+
+class TaskDetailsScreen extends StatelessWidget {
+  final Task task;
+
+  const TaskDetailsScreen({super.key, required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          task.title,
+          style: TextStyle(
+            color: Color(0xFFbfdee9),
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: const Color(0xFF063454),
+        elevation: 4,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ====================== Description ======================
+            _buildDetailSection(
+              icon: Icons.description,
+              title: "Description",
+              content: task.description ?? "No description provided",
+              isScrollable: true,
+            ),
+            const SizedBox(height: 15),
+
+            // ====================== Date ======================
+            _buildDetailSection(
+              icon: Icons.calendar_today,
+              title: "Date",
+              content: task.date ?? "No date specified",
+            ),
+            const SizedBox(height: 15),
+
+            // ====================== Time ======================
+            _buildDetailSection(
+              icon: Icons.access_time,
+              title: "Time",
+              content: task.time ?? "No time specified",
+            ),
+            const SizedBox(height: 15),
+
+            // ====================== Completed Status ======================
+            _buildDetailSection(
+              icon: Icons.check_circle_outline,
+              title: "Completed",
+              content: task.isCompleted ? "Yes" : "No",
+              contentColor:
+                  task.isCompleted ? Colors.green : Colors.red, 
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ====================== Helper Method to Build Detail Sections ======================
+  Widget _buildDetailSection({
+    required IconData icon,
+    required String title,
+    required String content,
+    bool isScrollable = false,
+    Color? contentColor, 
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFbfdee9),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF063454), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: const Color(0xFF063454),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                isScrollable
+                    ? SingleChildScrollView(
+                      scrollDirection: Axis.vertical,
+                      child: Text(
+                        content,
+                        style: TextStyle(
+                          color:
+                              contentColor ??
+                              const Color(0xFF063454).withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                    )
+                    : Text(
+                      content,
+                      style: TextStyle(
+                        color:
+                            contentColor ??
+                            const Color(0xFF063454).withOpacity(0.8),
+                        fontSize: 14,
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+---------------------------------------------------------
+schedules_screen.dart
+import 'package:flutter/material.dart';
+import 'package:myapp/screens/task_form_screen.dart';
+import 'package:myapp/widget/header_app.dart';
+import 'package:myapp/widget/schedule_list.dart';
+import 'package:myapp/widget/navigation_bar.dart';
+
+class ScheduleScreen extends StatelessWidget {
+  const ScheduleScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF468ca3),
+      body: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.only(
+            top: 20,
+            left: 20,
+            right: 20,
+            bottom: 20,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ====================== Section 1 ======================
+              HeaderApp(),
+
+              const SizedBox(height: 20),
+
+              // ====================== Section 2 ======================
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Scheduled Tasks",
+                    style: TextStyle(
+                      color: const Color(0xFFbfdee9),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  FloatingActionButton.small(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TaskFormScreen(),
+                        ),
+                      );
+                    },
+                    backgroundColor: const Color(0xFF063454),
+                    elevation: 4,
+                    child: Icon(
+                      Icons.add,
+                      size: 18,
+                      color: const Color(0xFFbfdee9),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 15),
+
+              // ====================== Section 3 ======================
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 15),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFbfdee9),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ScheduleList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: NavigationButtom(currentIndex: 1),
+    );
+  }
+}
+
+------------------------------------------------------
+
+schedule_form_screen.dart
+import 'package:flutter/material.dart';
+import 'package:myapp/widget/input_field.dart';
+
+class ScheduleFormScreen extends StatefulWidget {
+  final String? scheduleId;
+  const ScheduleFormScreen({super.key, this.scheduleId});
+
+  @override
+  _ScheduleFormScreenState createState() => _ScheduleFormScreenState();
+}
+
+class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController dateController = TextEditingController();
+  final TextEditingController timeController = TextEditingController();
+  bool isEnabled = true;
+
+  @override
+  Widget build(BuildContext context) {
+    bool isEditing = widget.scheduleId != null;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          isEditing ? "Edit Schedule" : "New Schedule",
+          style: TextStyle(
+            color: Color(0xFFbfdee9),
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: const Color(0xFF063454),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InputField(
+              label: "Title",
+              icon: Icons.title,
+              controller: titleController,
+            ),
+            const SizedBox(height: 15),
+            InputField(
+              label: "Description",
+              icon: Icons.description,
+              controller: descriptionController,
+            ),
+            const SizedBox(height: 15),
+            InputField(
+              label: "Date",
+              icon: Icons.calendar_today,
+              controller: dateController,
+              keyboardType: TextInputType.datetime,
+              isDateField: true,
+            ),
+            const SizedBox(height: 15),
+            InputField(
+              label: "Time",
+              icon: Icons.access_time,
+              controller: timeController,
+              keyboardType: TextInputType.datetime,
+              isTimeField: true,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "Enable Schedule",
+                  style: TextStyle(
+                    color: const Color(0xFF063454),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Switch(
+                  value: isEnabled,
+                  onChanged: (value) {
+                    setState(() {
+                      isEnabled = value;
+                    });
+                  },
+                  activeColor: const Color(0xFF063454),
+                  activeTrackColor: const Color(0xFFbfdee9),
+                  inactiveThumbColor: Colors.grey,
+                  inactiveTrackColor: Colors.grey[300],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                print("Title: ${titleController.text}");
+                print("Description: ${descriptionController.text}");
+                print("Date: ${dateController.text}");
+                print("Time: ${timeController.text}");
+                print("Is Enabled: $isEnabled");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF063454),
+                foregroundColor: Color(0xFFbfdee9),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 30),
+              ),
+              child: Text(isEditing ? "Save Changes" : "Add Schedule"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+-----------------------------------------------------
+header_app.dart
+import 'package:flutter/material.dart';
+
+class HeaderApp extends StatelessWidget {
+  const HeaderApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 15),
+      decoration: BoxDecoration(
+        color: const Color(0xFF063454),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 6,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Icon(
+            Icons.playlist_add_check,
+            size: 40,
+            color: const Color(0xFFbfdee9),
+          ),
+          const SizedBox(width: 15),
+          Text(
+            "ToDay List",
+            style: TextStyle(
+              color: const Color(0xFFbfdee9),
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+----------------------------------------------------
+navigation_bar.dart
+
+import 'package:flutter/material.dart';
+
+class NavigationButtom extends StatelessWidget {
+  final int currentIndex;
+
+  const NavigationButtom({super.key, required this.currentIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    return BottomNavigationBar(
+      backgroundColor: const Color(0xFF063454),
+      selectedItemColor: const Color(0xFF72c9ce),
+      unselectedItemColor: const Color(0xFFbfdee9),
+      currentIndex: currentIndex,
+      onTap: (index) {
+        String routeName = index == 0 ? '/home' : '/schedules';
+
+        if (ModalRoute.of(context)?.settings.name != routeName) {
+          Navigator.pushReplacementNamed(context, routeName);
+        }
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Schedules'),
+      ],
+    );
+  }
+}
+
+-------------------------------------------------------------------------
+input_field.dart
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+class InputField extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final TextInputType keyboardType;
+  final TextEditingController controller;
+  final bool isDateField;
+  final bool isTimeField;
+
+  const InputField({
+    super.key,
+    required this.label,
+    this.icon,
+    this.keyboardType = TextInputType.text,
+    required this.controller,
+    this.isDateField = false,
+    this.isTimeField = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15.0),
+      child: TextField(
+        maxLines: label == "Description" ? null : 1,
+        controller: controller,
+        keyboardType: keyboardType,
+        readOnly: isDateField || isTimeField,
+        onTap: () async {
+          if (isDateField) {
+            DateTime? pickedDate = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now(),
+              firstDate: DateTime(2000),
+              lastDate: DateTime(2101),
+            );
+            if (pickedDate != null) {
+              controller.text = DateFormat('yyyy-MM-dd').format(pickedDate);
+            }
+          } else if (isTimeField) {
+            TimeOfDay? pickedTime = await showTimePicker(
+              context: context,
+              initialTime: TimeOfDay.now(),
+            );
+            if (pickedTime != null) {
+              controller.text = pickedTime.format(context);
+            }
+          }
+        },
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: const Color(0xFF063454)),
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.black),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFbfdee9), width: 2),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFbfdee9), width: 3),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+--------------------------------------------------------
+schedule_list.dart
+
+import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+
+class ScheduleList extends StatelessWidget {
+  const ScheduleList({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 10, 
+      itemBuilder: (context, index) {
+        return Slidable(
+          endActionPane: ActionPane(
+            motion: ScrollMotion(),
+            children: [
+              SlidableAction(
+                onPressed: (context) {
+                  print("Edit Scheduled Task ${index + 1}");
+                },
+                backgroundColor: const Color(0xFFbfdee9),
+                icon: Icons.edit,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              SlidableAction(
+                onPressed: (context) {
+                  print("Delete Scheduled Task ${index + 1}");
+                },
+                backgroundColor: const Color(0xFFbfdee9),
+                icon: Icons.delete,
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ],
+          ),
+          child: ListTile(
+            title: Text(
+              "Scheduled Task ${index + 1}",
+              style: TextStyle(
+                color: const Color(0xFF063454),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            subtitle: Text(
+              "Due on: ${DateTime.now().add(Duration(days: index)).toString().split(' ')[0]}",
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+            trailing: Checkbox(
+              value: index % 2 == 0,
+              onChanged: (value) {},
+              activeColor: const Color(0xFF063454),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
