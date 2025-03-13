@@ -4,6 +4,7 @@ import 'package:myapp/database/schedule_model.dart';
 import 'package:myapp/providers/schedule_provider.dart';
 import 'package:myapp/screens/schedule_details_screen.dart';
 import 'package:myapp/screens/schedule_form_screen.dart';
+import 'package:myapp/widget/schedule_item.dart';
 import 'package:provider/provider.dart';
 
 class ScheduleList extends StatefulWidget {
@@ -30,7 +31,16 @@ class _ScheduleListState extends State<ScheduleList> {
         final schedules = provider.schedules;
 
         if (schedules.isEmpty) {
-          return const Center(child: Text("No scheduled tasks available"));
+          return const Center(
+            child: Text(
+              "No scheduled tasks available",
+              style: TextStyle(
+                color: Color(0xFF063454),
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          );
         }
 
         return ListView.builder(
@@ -68,37 +78,7 @@ class _ScheduleListState extends State<ScheduleList> {
                   ),
                 ],
               ),
-              child: ListTile(
-                title: Text(
-                  schedule.title,
-                  style: const TextStyle(
-                    color: Color(0xFF063454),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                subtitle: Text(
-                  "Date: ${schedule.date} - ${schedule.time}",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-                trailing: Checkbox(
-                  value: schedule.isEnabled,
-                  onChanged: (value) {
-                    provider.toggleScheduleStatus(schedule.id!, value ?? false);
-                  },
-                  activeColor: const Color(0xFF063454),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) =>
-                              ScheduleDetailsScreen(scheduleId: schedule.id!),
-                    ),
-                  );
-                },
-              ),
+              child: scheduleItem(schedule: schedule),
             );
           },
         );

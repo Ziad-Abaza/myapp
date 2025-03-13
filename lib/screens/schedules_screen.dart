@@ -13,7 +13,6 @@ class ScheduleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheduleProvider = Provider.of<ScheduleProvider>(context);
 
-    // تحميل المهام المجدولة عند فتح الشاشة
     scheduleProvider.loadSchedules();
 
     return Scaffold(
@@ -79,14 +78,19 @@ class ScheduleScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: scheduleProvider.schedules.isEmpty
-                      ? const Center(
-                          child: Text(
-                            "No scheduled tasks available",
-                            style: TextStyle(color: Color(0xFF063454)),
-                          ),
-                        )
-                      : ScheduleList(),
+                  child:
+                      scheduleProvider.schedules.isEmpty
+                          ? const Center(
+                            child: Text(
+                              "No scheduled tasks available",
+                              style: TextStyle(
+                                color: Color(0xFF063454),
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          )
+                          : ScheduleList(),
                 ),
               ),
             ],

@@ -56,8 +56,7 @@ class TaskDetailsScreen extends StatelessWidget {
               icon: Icons.check_circle_outline,
               title: "Completed",
               content: task.isCompleted ? "Yes" : "No",
-              contentColor:
-                  task.isCompleted ? Colors.green : Colors.red, 
+              contentColor: task.isCompleted ? Colors.green : Colors.red,
             ),
           ],
         ),
@@ -71,7 +70,7 @@ class TaskDetailsScreen extends StatelessWidget {
     required String title,
     required String content,
     bool isScrollable = false,
-    Color? contentColor, 
+    Color? contentColor,
   }) {
     return Container(
       padding: const EdgeInsets.all(12),

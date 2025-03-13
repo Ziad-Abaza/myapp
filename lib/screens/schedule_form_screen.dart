@@ -143,7 +143,10 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF063454),
                 foregroundColor: Color(0xFFbfdee9),
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 30),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 30,
+                ),
               ),
               child: Text(isEditing ? "Save Changes" : "Add Schedule"),
             ),
