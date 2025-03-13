@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:myapp/widget/input_field.dart';
 import 'package:myapp/database/task_model.dart';
-import 'package:myapp/database/task_database.dart';
+import 'package:myapp/providers/task_provider.dart';
 
 class TaskFormScreen extends StatefulWidget {
-  final int? taskId; 
+  final int? taskId;
   const TaskFormScreen({super.key, this.taskId});
 
   @override
@@ -27,7 +28,8 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   }
 
   void _loadTask(int taskId) async {
-    Task? task = await TaskDatabase().getTaskById(taskId);
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    Task? task = await taskProvider.getTask(taskId);
     if (task != null) {
       setState(() {
         titleController.text = task.title;
@@ -47,7 +49,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
 
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Title cannot be empty")),
+        const SnackBar(content: Text("Title cannot be empty")),
       );
       return;
     }
@@ -61,10 +63,11 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       isCompleted: isCompleted,
     );
 
+    final taskProvider = Provider.of<TaskProvider>(context, listen: false);
     if (widget.taskId == null) {
-      await TaskDatabase().insertTask(task);
+      await taskProvider.addTask(task);
     } else {
-      await TaskDatabase().updateTask(task);
+      await taskProvider.updateTask(task);
     }
 
     Navigator.pop(context, true);
@@ -77,7 +80,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
       appBar: AppBar(
         title: Text(
           isEditing ? "Edit Task" : "New Task",
-          style: TextStyle(
+          style: const TextStyle(
             color: Color(0xFFbfdee9),
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -122,7 +125,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
               onPressed: _saveTask,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF063454),
-                foregroundColor: Color(0xFFbfdee9),
+                foregroundColor: const Color(0xFFbfdee9),
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 30),
               ),
               child: Text(isEditing ? "Save Changes" : "Add Task"),

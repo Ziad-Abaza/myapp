@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:myapp/screens/task_form_screen.dart';
 import 'package:myapp/widget/header_app.dart';
 import 'package:myapp/widget/tasks_list.dart';
 import 'package:myapp/widget/navigation_bar.dart';
-import 'package:myapp/database/task_database.dart';
-import 'package:myapp/database/task_model.dart';
+import 'package:myapp/providers/task_provider.dart'; 
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -14,19 +14,10 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  int _taskCount = 0;
-
   @override
   void initState() {
     super.initState();
-    _loadTaskCount();
-  }
-
-  void _loadTaskCount() async {
-    List<Task> tasks = await TaskDatabase().getAllTasks();
-    setState(() {
-      _taskCount = tasks.length;
-    });
+    Future.microtask(() => Provider.of<TaskProvider>(context, listen: false).loadTasks());
   }
 
   @override
@@ -35,12 +26,7 @@ class _TasksScreenState extends State<TasksScreen> {
       backgroundColor: const Color(0xFF468ca3),
       body: SafeArea(
         child: Container(
-          padding: const EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: 20,
-          ),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -50,37 +36,42 @@ class _TasksScreenState extends State<TasksScreen> {
               const SizedBox(height: 20),
 
               // ====================== Section 2 ======================
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "$_taskCount Tasks",
-                    style: TextStyle(
-                      color: const Color(0xFFbfdee9),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  FloatingActionButton.small(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const TaskFormScreen(),
+              Consumer<TaskProvider>(
+                builder: (context, taskProvider, child) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${taskProvider.tasks.length} Tasks",
+                        style: TextStyle(
+                          color: const Color(0xFFbfdee9),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
                         ),
-                      ).then((_) => _loadTaskCount());
-                    },
-                    backgroundColor: const Color(0xFF063454),
-                    elevation: 4,
-                    child: Icon(
-                      Icons.add,
-                      size: 18,
-                      color: const Color(0xFFbfdee9),
-                    ),
-                  ),
-                ],
+                      ),
+                      FloatingActionButton.small(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const TaskFormScreen(),
+                            ),
+                          ).then((_) => taskProvider.loadTasks()); 
+                        },
+                        backgroundColor: const Color(0xFF063454),
+                        elevation: 4,
+                        child: Icon(
+                          Icons.add,
+                          size: 18,
+                          color: const Color(0xFFbfdee9),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
+
               // ====================== Section 3 ======================
               Expanded(
                 child: Container(
@@ -96,7 +87,7 @@ class _TasksScreenState extends State<TasksScreen> {
                       ),
                     ],
                   ),
-                  child: TasksList(onUpdateTaskCount: _loadTaskCount), 
+                  child: TasksList(),
                 ),
               ),
             ],

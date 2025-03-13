@@ -1,24 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/screens/task_form_screen.dart';
+import 'package:myapp/screens/schedule_form_screen.dart';
+import 'package:provider/provider.dart';
 import 'package:myapp/widget/header_app.dart';
 import 'package:myapp/widget/schedule_list.dart';
 import 'package:myapp/widget/navigation_bar.dart';
+import 'package:myapp/providers/schedule_provider.dart';
 
 class ScheduleScreen extends StatelessWidget {
   const ScheduleScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final scheduleProvider = Provider.of<ScheduleProvider>(context);
+
+    // تحميل المهام المجدولة عند فتح الشاشة
+    scheduleProvider.loadSchedules();
+
     return Scaffold(
       backgroundColor: const Color(0xFF468ca3),
       body: SafeArea(
         child: Container(
-          padding: const EdgeInsets.only(
-            top: 20,
-            left: 20,
-            right: 20,
-            bottom: 20,
-          ),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -33,8 +35,8 @@ class ScheduleScreen extends StatelessWidget {
                 children: [
                   Text(
                     "Scheduled Tasks",
-                    style: TextStyle(
-                      color: const Color(0xFFbfdee9),
+                    style: const TextStyle(
+                      color: Color(0xFFbfdee9),
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
@@ -45,16 +47,16 @@ class ScheduleScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const TaskFormScreen(),
+                          builder: (context) => const ScheduleFormScreen(),
                         ),
                       );
                     },
                     backgroundColor: const Color(0xFF063454),
                     elevation: 4,
-                    child: Icon(
+                    child: const Icon(
                       Icons.add,
                       size: 18,
-                      color: const Color(0xFFbfdee9),
+                      color: Color(0xFFbfdee9),
                     ),
                   ),
                 ],
@@ -73,18 +75,25 @@ class ScheduleScreen extends StatelessWidget {
                       BoxShadow(
                         color: Colors.black.withOpacity(0.2),
                         blurRadius: 6,
-                        offset: Offset(0, 3),
+                        offset: const Offset(0, 3),
                       ),
                     ],
                   ),
-                  child: ScheduleList(),
+                  child: scheduleProvider.schedules.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "No scheduled tasks available",
+                            style: TextStyle(color: Color(0xFF063454)),
+                          ),
+                        )
+                      : ScheduleList(),
                 ),
               ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: NavigationButtom(currentIndex: 1),
+      bottomNavigationBar: const NavigationButtom(currentIndex: 1),
     );
   }
 }

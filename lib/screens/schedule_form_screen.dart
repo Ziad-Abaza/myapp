@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:myapp/database/schedule_model.dart';
+import 'package:myapp/providers/schedule_provider.dart';
 import 'package:myapp/widget/input_field.dart';
+import 'package:provider/provider.dart';
 
 class ScheduleFormScreen extends StatefulWidget {
   final String? scheduleId;
@@ -15,6 +18,51 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController timeController = TextEditingController();
   bool isEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.scheduleId != null) {
+      _loadSchedule();
+    }
+  }
+
+  Future<void> _loadSchedule() async {
+    final provider = Provider.of<ScheduleProvider>(context, listen: false);
+    final schedule = await provider.getSchedule(int.parse(widget.scheduleId!));
+
+    if (schedule != null) {
+      setState(() {
+        titleController.text = schedule.title;
+        descriptionController.text = schedule.description ?? "";
+        dateController.text = schedule.date;
+        timeController.text = schedule.time;
+        isEnabled = schedule.isEnabled;
+      });
+    }
+  }
+
+  void _saveSchedule() {
+    final provider = Provider.of<ScheduleProvider>(context, listen: false);
+    final isEditing = widget.scheduleId != null;
+
+    final schedule = Schedule(
+      id: isEditing ? int.parse(widget.scheduleId!) : null,
+      title: titleController.text.trim(),
+      description: descriptionController.text.trim(),
+      date: dateController.text.trim(),
+      time: timeController.text.trim(),
+      isEnabled: isEnabled,
+    );
+
+    if (isEditing) {
+      provider.updateSchedule(schedule);
+    } else {
+      provider.addSchedule(schedule);
+    }
+
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,14 +139,7 @@ class _ScheduleFormScreenState extends State<ScheduleFormScreen> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                // حفظ الجدول أو تعديله
-                print("Title: ${titleController.text}");
-                print("Description: ${descriptionController.text}");
-                print("Date: ${dateController.text}");
-                print("Time: ${timeController.text}");
-                print("Is Enabled: $isEnabled");
-              },
+              onPressed: _saveSchedule,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF063454),
                 foregroundColor: Color(0xFFbfdee9),
